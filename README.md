@@ -20,8 +20,16 @@ Metis Plugins
     <td>Add possibility to make diff of snapshots v2.0.0.</td>
   </tr>
   <tr>
+    <td>diff_v3.0.0</td>
+    <td>Add possibility to make diff of snapshots v3.0.0.</td>
+  </tr>
+  <tr>
     <td>migrate_v1.0.0_to_v2.0.0</td>
-    <td>Add possibility to make snapshots migration from v1.0.0 to v2.0.0.</td>
+    <td>Add possibility to make snapshots migration between v1.0.0 and v2.0.0.</td>
+  </tr>
+  <tr>
+    <td>migrate_v2.0.0_to_v3.0.0</td>
+    <td>Add possibility to make snapshots migration between v2.0.0 and v3.0.0.</td>
   </tr>
 </table>
 
