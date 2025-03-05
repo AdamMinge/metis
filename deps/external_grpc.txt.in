@@ -1,0 +1,55 @@
+# ----------------------------------------------------------------------- #
+# -------------------------- Set CMake version -------------------------- #
+# ----------------------------------------------------------------------- #
+cmake_minimum_required(VERSION 3.11)
+# ----------------------------------------------------------------------- #
+# -------------------------- Fetch dependencies ------------------------- #
+# ----------------------------------------------------------------------- #
+project(grpc NONE)
+
+set(deps @METIS_BUILD_DEPS_DIR@)
+set(prefix_dir ${deps}/grpc)
+set(src_dir ${prefix_dir}/src/grpc)
+set(build_dir ${prefix_dir}/src/grpc-build)
+set(install_dir ${prefix_dir}/src/grpc-install)
+
+if(CMAKE_CONFIGURATION_TYPES)
+    set(build_config "$<CONFIG>")
+else() 
+    if(CMAKE_BUILD_TYPE)
+        set(build_config "${CMAKE_BUILD_TYPE}")
+    else()
+        set(build_config "Release")
+    endif()
+endif()
+
+include(ExternalProject)
+ExternalProject_Add(
+    grpc
+    GIT_REPOSITORY      
+        https://github.com/grpc/grpc
+    GIT_TAG             
+        v1.66.1
+    PREFIX              
+        ${prefix_dir}
+    CONFIGURE_COMMAND   
+        ${CMAKE_COMMAND} 
+        -B ${build_dir} 
+        -G "${CMAKE_GENERATOR}" 
+        -DCMAKE_INSTALL_PREFIX=${install_dir} 
+        -DgRPC_INSTALL=ON
+        -DgRPC_BUILD_PROTOBUF=ON
+        -DgRPC_INSTALL_PROTOBUF=ON
+        ${src_dir}
+    BUILD_COMMAND       
+        ${CMAKE_COMMAND} 
+        --build ${build_dir}
+        --config ${build_config}
+    INSTALL_COMMAND     
+        ${CMAKE_COMMAND} 
+        --build ${build_dir} 
+        --target install
+        --config ${build_config}
+    TEST_COMMAND        
+        "")
+# ----------------------------------------------------------------------- #

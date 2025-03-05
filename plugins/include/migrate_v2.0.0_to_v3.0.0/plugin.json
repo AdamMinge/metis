@@ -1,0 +1,7 @@
+{
+  "Name": "Migrate v2.0.0 - v3.0.0",
+  "Description": [
+    "Migrate snapshot from v2.0.0 to v3.0.0"
+  ],
+  "Version": "1.0.0"
+}

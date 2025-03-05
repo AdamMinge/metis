@@ -1,0 +1,61 @@
+# ----------------------------------------------------------------------- #
+# ------------------- Check that called with component ------------------ #
+# ----------------------------------------------------------------------- #
+if (NOT metis_FIND_COMPONENTS)
+    message(FATAL_ERROR "find_package(metis) called with no component")
+endif()
+# ----------------------------------------------------------------------- #
+# -------------- Set config_name dependent on libraries type ------------ #
+# ----------------------------------------------------------------------- #
+if(METIS_STATIC_LIBRARIES)
+    set(config_name "static")
+else()
+    set(config_name "shared")
+endif()
+# ----------------------------------------------------------------------- #
+# ---------------------- Update requested components -------------------- #
+# ----------------------------------------------------------------------- #
+set(FIND_metis_ADDITIONAL_COMPONENTS "")
+
+foreach(component ${metis_FIND_COMPONENTS})
+    list(APPEND FIND_metis_ADDITIONAL_COMPONENTS ${FIND_metis_${component}_DEPENDENCIES})
+endforeach()
+
+list(APPEND metis_FIND_COMPONENTS ${FIND_metis_ADDITIONAL_COMPONENTS})
+list(REMOVE_DUPLICATES metis_FIND_COMPONENTS)
+# ----------------------------------------------------------------------- #
+# -------------------- Load targets and dependencies -------------------- #
+# ----------------------------------------------------------------------- #
+set(targets_config_file ${CMAKE_CURRENT_LIST_DIR}/metis-${config_name}-targets.cmake)
+set(metis_FOUND TRUE)
+
+if(EXISTS ${targets_config_file})
+    include(${targets_config_file})
+    include("${CMAKE_CURRENT_LIST_DIR}/metis-config-dependencies.cmake")
+
+    if (metis_FOUND)
+        foreach (component ${metis_FIND_COMPONENTS})
+            if (TARGET metis-${component})
+                set(metis_${component}_FOUND TRUE)
+            else()
+                set(FIND_metis_ERROR "Found metis but requested component '${component}' is missing in the config defined in ${METIS_DIR}.")
+                set(metis_${component}_FOUND FALSE)
+                set(metis_FOUND FALSE)
+            endif()
+        endforeach()
+    endif()
+else()
+    set(FIND_metis_ERROR "Requested metis configuration (${config_name}) was not found")
+    set(metis_FOUND FALSE)
+endif()
+# ----------------------------------------------------------------------- #
+# ------------=------------- Display all errors ------------------------- #
+# ----------------------------------------------------------------------- #
+if (NOT metis_FOUND)
+    if(metis_FIND_REQUIRED)
+        message(FATAL_ERROR "${FIND_metis_ERROR}")
+    elseif(NOT metis_FIND_QUIETLY)
+        message(STATUS "${FIND_metis_ERROR}")
+    endif()
+endif()
+# ----------------------------------------------------------------------- #

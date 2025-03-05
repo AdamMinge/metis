@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package snap_v2_0_0;
+
+message Snapshot {
+    int32 nr = 1;
+    string name = 2;
+}

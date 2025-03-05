@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package snap_v1_0_0;
+
+message Snapshot {
+    string name = 1;
+}
