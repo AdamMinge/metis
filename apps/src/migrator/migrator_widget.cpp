@@ -117,7 +117,7 @@ void MigratorWidget::validate()
   m_ui->migrate_button->setEnabled(valid);
 }
 
-bool MigratorWidget::isSnapshotValid()
+bool MigratorWidget::isSnapshotValid() const
 {
   const auto snapshot_path = m_ui->snapshot_edit->text();
   const auto snapshot_info = QFileInfo(snapshot_path);
@@ -125,13 +125,13 @@ bool MigratorWidget::isSnapshotValid()
   return snapshot_info.exists();
 }
 
-bool MigratorWidget::isOutputValid()
+bool MigratorWidget::isOutputValid() const
 {
   const auto output_path = m_ui->output_edit->text();
   return !output_path.isEmpty();
 }
 
-bool MigratorWidget::isVersionValid()
+bool MigratorWidget::isVersionValid() const
 {
   if (m_ui->snapshot_version_edit->currentIndex() < 0) return false;
   if (m_ui->output_version_edit->currentIndex() < 0) return false;

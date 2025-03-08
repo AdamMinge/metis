@@ -13,12 +13,14 @@ set(resource_root ${METIS_SOURCE_DIR}/apps/resource/differ)
 set(sources
     ${source_root}/main.cpp
     ${source_root}/main_window.cpp
-    ${source_root}/differ_widget.cpp)
+    ${source_root}/differ_widget.cpp
+    ${source_root}/console_widget.cpp)
 
 set(includes
     ${include_root}/resources.h
     ${include_root}/main_window.h
-    ${include_root}/differ_widget.h)
+    ${include_root}/differ_widget.h
+    ${include_root}/console_widget.h)
 
 set(uis
     ${ui_root}/main_window.ui

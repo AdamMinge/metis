@@ -32,9 +32,9 @@ private Q_SLOTS:
   void browseOutput();
 
   void validate();
-  [[nodiscard]] bool isSnapshotValid();
-  [[nodiscard]] bool isOutputValid();
-  [[nodiscard]] bool isVersionValid();
+  [[nodiscard]] bool isSnapshotValid() const;
+  [[nodiscard]] bool isOutputValid() const;
+  [[nodiscard]] bool isVersionValid() const;
 
   void migrate();
 

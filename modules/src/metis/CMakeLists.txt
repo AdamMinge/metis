@@ -18,7 +18,8 @@ set(sources
     ${source_root}/plugin_interface.cpp
     ${source_root}/preferences_manager.cpp
     ${source_root}/plugin_manager.cpp
-    ${source_root}/migrator.cpp)
+    ${source_root}/migrator.cpp
+    ${source_root}/differ.cpp)
 
 set(includes
     ${include_root}/config.h
@@ -32,7 +33,8 @@ set(includes
     ${include_root}/plugin_interface.h
     ${include_root}/plugin_manager.h
     ${include_root}/preferences_manager.h
-    ${include_root}/migrator.h)
+    ${include_root}/migrator.h
+    ${include_root}/differ.h)
 
 set(resources)
 # ----------------------------------------------------------------------- #

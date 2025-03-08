@@ -10,11 +10,13 @@ set(include_root ${METIS_SOURCE_DIR}/plugins/include/diff_v2.0.0)
 set(proto_root ${METIS_SOURCE_DIR}/protos)
 
 set(sources
-    ${source_root}/plugin.cpp)
+    ${source_root}/plugin.cpp
+    ${source_root}/differ.cpp)
 
 set(includes
     ${include_root}/export.h
-    ${include_root}/plugin.h)
+    ${include_root}/plugin.h
+    ${include_root}/differ.h)
 
 set(protos 
     ${proto_root}/snap_v2.0.0.proto)
