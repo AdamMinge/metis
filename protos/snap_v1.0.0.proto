@@ -3,5 +3,53 @@ syntax = "proto3";
 package snap_v1_0_0;
 
 message Snapshot {
-    string name = 1;
+    Settings settings = 1;
+    repeated Cell cells = 2;
+    repeated Part parts = 3;
+    repeated Component components = 4;
+    repeated Layer layers = 5;
+}
+
+message Settings {
+    string version = 1;
+    string author = 2;
+    uint32 timestamp = 3;
+}
+
+message Cell {
+    string id = 1;
+    string name = 2;
+    double width = 3;
+    double height = 4;
+    string type = 5;
+}
+
+message Pin {
+    string id = 1;        
+    string name = 2;      
+    string function = 3;  
+}
+
+message Part {
+    string id = 1;
+    string name = 2;
+    string category = 3;
+    string material = 4;
+    double weight = 5;
+}
+
+message Component {
+    string id = 1;
+    string name = 2;
+    string part = 3;
+    string placement = 4;
+    repeated Pin pins = 5;
+}
+
+message Layer {
+    string id = 1;
+    string name = 2;
+    uint32 order = 3;
+    string material = 4;
+    double thickness = 5;
 }
