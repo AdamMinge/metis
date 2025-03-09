@@ -20,28 +20,52 @@ namespace
     {
       case google::protobuf::FieldDescriptor::CPPTYPE_STRING:
         return QString::fromStdString(reflection->GetString(msg, field));
-        break;
       case google::protobuf::FieldDescriptor::CPPTYPE_INT32:
         return reflection->GetInt32(msg, field);
-        break;
       case google::protobuf::FieldDescriptor::CPPTYPE_INT64:
         return qint64(reflection->GetInt64(msg, field));
-        break;
       case google::protobuf::FieldDescriptor::CPPTYPE_UINT32:
         return reflection->GetUInt32(msg, field);
-        break;
       case google::protobuf::FieldDescriptor::CPPTYPE_UINT64:
         return quint64(reflection->GetUInt64(msg, field));
-        break;
       case google::protobuf::FieldDescriptor::CPPTYPE_BOOL:
         return reflection->GetBool(msg, field);
-        break;
       case google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE:
         return reflection->GetDouble(msg, field);
-        break;
       case google::protobuf::FieldDescriptor::CPPTYPE_FLOAT:
         return reflection->GetFloat(msg, field);
-        break;
+    }
+
+    return QVariant{};
+  }
+
+  QVariant getRepeatedValue(
+    const google::protobuf::Message &msg,
+    const google::protobuf::FieldDescriptor *field,
+    const google::protobuf::Reflection *reflection, int index)
+  {
+    const auto size = reflection->FieldSize(msg, field);
+    if (index < 0 || index >= size) return QVariant{};
+
+    switch (field->cpp_type())
+    {
+      case google::protobuf::FieldDescriptor::CPPTYPE_STRING:
+        return QString::fromStdString(
+          reflection->GetRepeatedString(msg, field, index));
+      case google::protobuf::FieldDescriptor::CPPTYPE_INT32:
+        return reflection->GetRepeatedInt32(msg, field, index);
+      case google::protobuf::FieldDescriptor::CPPTYPE_INT64:
+        return qint64(reflection->GetRepeatedInt64(msg, field, index));
+      case google::protobuf::FieldDescriptor::CPPTYPE_UINT32:
+        return reflection->GetRepeatedUInt32(msg, field, index);
+      case google::protobuf::FieldDescriptor::CPPTYPE_UINT64:
+        return quint64(reflection->GetRepeatedUInt64(msg, field, index));
+      case google::protobuf::FieldDescriptor::CPPTYPE_BOOL:
+        return reflection->GetRepeatedBool(msg, field, index);
+      case google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE:
+        return reflection->GetRepeatedDouble(msg, field, index);
+      case google::protobuf::FieldDescriptor::CPPTYPE_FLOAT:
+        return reflection->GetRepeatedFloat(msg, field, index);
     }
 
     return QVariant{};
@@ -60,64 +84,134 @@ namespace
       std::make_unique<ObjectNode>(QString::fromStdString(descriptor->name()));
     object_node->setChange(ChangeType::Unchanged);
 
-    for (int i = 0; i < descriptor->field_count(); ++i)
+    for (auto i = 0; i < descriptor->field_count(); ++i)
     {
       const auto field = descriptor->field(i);
-      if (field->is_repeated()) continue;
-
-      const auto has1 = reflection1->HasField(msg1, field);
-      const auto has2 = reflection2->HasField(msg2, field);
-
-      if (
-        field->cpp_type() == google::protobuf::FieldDescriptor::CPPTYPE_MESSAGE)
+      if (field->is_repeated())
       {
-        if (has1 && has2)
-        {
-          object_node->addChild(createDiffNode(
-            reflection1->GetMessage(msg1, field),
-            reflection2->GetMessage(msg2, field)));
-        } else
-        {
-          const auto empty_msg =
-            google::protobuf::MessageFactory::generated_factory()->GetPrototype(
-              field->message_type());
-          Q_ASSERT(empty_msg);
+        const auto size1 = reflection1->FieldSize(msg1, field);
+        const auto size2 = reflection2->FieldSize(msg2, field);
 
-          if (has1)
+        auto max_size = std::max(size1, size2);
+        auto repeated_field_node =
+          std::make_unique<ObjectNode>(QString::fromStdString(
+            field->name() + "[" + std::to_string(0) + "-" +
+            std::to_string(max_size) + "]"));
+
+        for (auto j = 0; j < max_size; ++j)
+        {
+          auto node = std::make_unique<DiffNode>();
+          if (
+            field->cpp_type() ==
+            google::protobuf::FieldDescriptor::CPPTYPE_MESSAGE)
           {
-            auto removed_node =
-              createDiffNode(reflection1->GetMessage(msg1, field), *empty_msg);
-            removed_node->setChange(ChangeType::Removed);
-            object_node->addChild(std::move(removed_node));
-          } else if (has2)
+            const auto empty_msg =
+              google::protobuf::MessageFactory::generated_factory()
+                ->GetPrototype(field->message_type());
+            Q_ASSERT(empty_msg);
+
+            auto message1 = j < size1
+                              ? &reflection1->GetRepeatedMessage(msg1, field, j)
+                              : empty_msg;
+            auto message2 = j < size2
+                              ? &reflection2->GetRepeatedMessage(msg2, field, j)
+                              : empty_msg;
+
+            node = createDiffNode(*message1, *message2);
+          } else
           {
-            auto added_node =
-              createDiffNode(*empty_msg, reflection2->GetMessage(msg2, field));
-            added_node->setChange(ChangeType::Added);
-            object_node->addChild(std::move(added_node));
+            QVariant value1, value2;
+            if (j < size1)
+            {
+              value1 = getRepeatedValue(msg1, field, reflection1, j);
+            }
+            if (j < size2)
+            {
+              value2 = getRepeatedValue(msg2, field, reflection2, j);
+            }
+
+            node = std::make_unique<PropertyNode>(
+              QString::fromStdString(
+                field->name() + "[" + std::to_string(j) + "]"),
+              value1, value2);
+
+            if (j < size1 && j < size2)
+            {
+              node->setChange(
+                value1 == value2 ? ChangeType::Unchanged
+                                 : ChangeType::Modified);
+            }
           }
+
+          if (j < size1)
+          {
+            node->setChange(ChangeType::Removed);
+          } else if (j < size2)
+          {
+            node->setChange(ChangeType::Added);
+          }
+
+          repeated_field_node->addChild(std::move(node));
         }
+
+        object_node->addChild(std::move(repeated_field_node));
       } else
       {
-        auto value1 = has1 ? getValue(msg1, field, reflection1) : QVariant{};
-        auto value2 = has2 ? getValue(msg2, field, reflection2) : QVariant{};
+        const auto has1 = reflection1->HasField(msg1, field);
+        const auto has2 = reflection2->HasField(msg2, field);
 
-        auto property_node = std::make_unique<PropertyNode>(
-          QString::fromStdString(field->name()), value1, value2);
+        if (
+          field->cpp_type() ==
+          google::protobuf::FieldDescriptor::CPPTYPE_MESSAGE)
+        {
+          if (has1 && has2)
+          {
+            object_node->addChild(createDiffNode(
+              reflection1->GetMessage(msg1, field),
+              reflection2->GetMessage(msg2, field)));
+          } else
+          {
+            const auto empty_msg =
+              google::protobuf::MessageFactory::generated_factory()
+                ->GetPrototype(field->message_type());
+            Q_ASSERT(empty_msg);
 
-        if (has1 && has2)
+            if (has1)
+            {
+              auto removed_node = createDiffNode(
+                reflection1->GetMessage(msg1, field), *empty_msg);
+              removed_node->setChange(ChangeType::Removed);
+              object_node->addChild(std::move(removed_node));
+            } else if (has2)
+            {
+              auto added_node = createDiffNode(
+                *empty_msg, reflection2->GetMessage(msg2, field));
+              added_node->setChange(ChangeType::Added);
+              object_node->addChild(std::move(added_node));
+            }
+          }
+        } else
         {
-          property_node->setChange(
-            value1 == value2 ? ChangeType::Unchanged : ChangeType::Modified);
-        } else if (has1)
-        {
-          property_node->setChange(ChangeType::Removed);
-        } else if (has2)
-        {
-          property_node->setChange(ChangeType::Added);
+          auto value1 = has1 ? getValue(msg1, field, reflection1) : QVariant{};
+          auto value2 = has2 ? getValue(msg2, field, reflection2) : QVariant{};
+
+          auto property_node = std::make_unique<PropertyNode>(
+            QString::fromStdString(field->name()), value1, value2);
+
+          if (has1 && has2)
+          {
+            property_node->setChange(
+              value1 == value2 ? ChangeType::Unchanged : ChangeType::Modified);
+          } else if (has1)
+          {
+            property_node->setChange(ChangeType::Removed);
+          } else if (has2)
+          {
+            property_node->setChange(ChangeType::Added);
+          }
+
+          object_node->addChild(std::move(property_node));
         }
-
-        object_node->addChild(std::move(property_node));
       }
     }
 
