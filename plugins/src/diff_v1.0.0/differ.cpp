@@ -8,6 +8,8 @@
 #include <metis/logging_manager.h>
 /* -------------------------------------------------------------------------- */
 
+#undef GetMessage
+
 namespace
 {
 

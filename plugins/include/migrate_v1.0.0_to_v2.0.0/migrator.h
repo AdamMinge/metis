@@ -3,8 +3,6 @@
 
 /* ----------------------------------- Metis -------------------------------- */
 #include <metis/migrator.h>
-/* ----------------------------------- Local -------------------------------- */
-#include "migrate_v1.0.0_to_v2.0.0/export.h"
 /* -------------------------------------------------------------------------- */
 
 namespace snap_v1_0_0
@@ -17,7 +15,7 @@ namespace snap_v2_0_0
   class Snapshot;
 }
 
-class LIB_PLUGIN_API Migrator : public metis::Migrator
+class Migrator : public metis::Migrator
 {
   Q_OBJECT
 
@@ -36,7 +34,7 @@ private:
 
 };// namespace metis::Migrator
 
-class LIB_PLUGIN_API ReverseMigrator : public metis::Migrator
+class ReverseMigrator : public metis::Migrator
 {
   Q_OBJECT
 

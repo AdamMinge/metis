@@ -14,7 +14,6 @@ set(sources
     ${source_root}/differ.cpp)
 
 set(includes
-    ${include_root}/export.h
     ${include_root}/plugin.h
     ${include_root}/differ.h)
 

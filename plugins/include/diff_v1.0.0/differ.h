@@ -7,8 +7,6 @@
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
 #include <google/protobuf/reflection.h>
-/* ----------------------------------- Local -------------------------------- */
-#include "diff_v1.0.0/export.h"
 /* -------------------------------------------------------------------------- */
 
 enum class ChangeType
@@ -73,7 +71,7 @@ private:
   QVariant m_newValue;
 };
 
-class LIB_PLUGIN_API DiffModel : public QAbstractItemModel
+class DiffModel : public QAbstractItemModel
 {
   Q_OBJECT
 
@@ -103,7 +101,7 @@ private:
   std::unique_ptr<DiffNode> m_root;
 };
 
-class LIB_PLUGIN_API Differ : public metis::Differ
+class Differ : public metis::Differ
 {
   Q_OBJECT
 
