@@ -9,6 +9,8 @@
 #include <google/protobuf/reflection.h>
 /* -------------------------------------------------------------------------- */
 
+/* --------------------------------- ChangeType ----------------------------- */
+
 enum class ChangeType
 {
   Unchanged,
@@ -16,6 +18,8 @@ enum class ChangeType
   Removed,
   Modified
 };
+
+/* ---------------------------------- DiffNode ------------------------------ */
 
 class DiffNode
 {
@@ -45,6 +49,8 @@ protected:
   std::vector<std::unique_ptr<DiffNode>> m_children;
 };
 
+/* --------------------------------- ObjectNode ----------------------------- */
+
 class ObjectNode : public DiffNode
 {
 public:
@@ -55,6 +61,8 @@ public:
 private:
   QString m_name;
 };
+
+/* -------------------------------- PropertyNode ---------------------------- */
 
 class PropertyNode : public DiffNode
 {
@@ -70,6 +78,40 @@ private:
   QVariant m_oldValue;
   QVariant m_newValue;
 };
+
+/* --------------------------------- DiffBuilder ---------------------------- */
+
+class DiffBuilder
+{
+public:
+  explicit DiffBuilder();
+  ~DiffBuilder();
+
+  std::unique_ptr<DiffNode> build(
+    const google::protobuf::Message &msg1,
+    const google::protobuf::Message &msg2) const;
+
+private:
+  [[nodiscard]] std::unique_ptr<DiffNode> createFromField(
+    const google::protobuf::Message &msg1,
+    const google::protobuf::Message &msg2,
+    const google::protobuf::FieldDescriptor *field) const;
+  [[nodiscard]] std::unique_ptr<DiffNode> createFromRepeatedField(
+    const google::protobuf::Message &msg1,
+    const google::protobuf::Message &msg2,
+    const google::protobuf::FieldDescriptor *field) const;
+
+  [[nodiscard]] QVariant getRepeatedValue(
+    const google::protobuf::Message &msg,
+    const google::protobuf::FieldDescriptor *field,
+    const google::protobuf::Reflection *reflection, int index) const;
+  [[nodiscard]] QVariant getValue(
+    const google::protobuf::Message &msg,
+    const google::protobuf::FieldDescriptor *field,
+    const google::protobuf::Reflection *reflection) const;
+};
+
+/* ---------------------------------- DiffModel ----------------------------- */
 
 class DiffModel : public QAbstractItemModel
 {
@@ -100,6 +142,8 @@ protected:
 private:
   std::unique_ptr<DiffNode> m_root;
 };
+
+/* ----------------------------------- Differ ------------------------------- */
 
 class Differ : public metis::Differ
 {
