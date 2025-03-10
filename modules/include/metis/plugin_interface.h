@@ -8,27 +8,29 @@
 #include "metis/export.h"
 /* -------------------------------------------------------------------------- */
 
-namespace metis {
+namespace metis
+{
 
-class LIB_METIS_API PluginInterface : public QObject {
-  Q_OBJECT
+  class LIB_METIS_API PluginInterface : public QObject
+  {
+    Q_OBJECT
 
- public:
-  explicit PluginInterface();
-  ~PluginInterface() override;
+  public:
+    explicit PluginInterface();
+    ~PluginInterface() override;
 
-  virtual void init();
+    virtual void init();
 
- protected:
-  void addObject(QObject *object);
-  void removeObject(QObject *object);
+  protected:
+    void addObject(QObject *object);
+    void removeObject(QObject *object);
 
- private:
-  QList<QObject *> m_added_objects;
-};
+  private:
+    QList<QObject *> m_added_objects;
+  };
 
-}  // namespace metis
+}// namespace metis
 
 Q_DECLARE_INTERFACE(metis::PluginInterface, "org.metis.PluginInterface")
 
-#endif  // METIS_PLUGIN_INTERFACE_H
+#endif// METIS_PLUGIN_INTERFACE_H
