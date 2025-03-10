@@ -382,17 +382,12 @@ QVariant DiffModel::data(const QModelIndex &index, int role) const
     }
   } else if (role == Qt::FontRole)
   {
-    if (node->change() != ChangeType::Unchanged)
-    {
-      QFont font;
-      font.setBold(true);
-      return font;
-    } else if (node->change() == ChangeType::Removed)
-    {
-      QFont font;
-      font.setStrikeOut(true);
-      return font;
-    }
+    QFont font;
+    if (node->change() != ChangeType::Unchanged) font.setBold(true);
+    if (node->change() == ChangeType::Removed) font.setStrikeOut(true);
+
+    return font;
+
   } else if (role == Qt::DecorationRole && index.column() == 0)
   {
     switch (node->change())
