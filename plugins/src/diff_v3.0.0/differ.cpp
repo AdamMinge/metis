@@ -237,10 +237,10 @@ std::unique_ptr<DiffNode> DiffBuilder::createFromRepeatedField(
 
     if (j >= size1)
     {
-      node->setChange(ChangeType::Removed);
+      node->setChange(ChangeType::Added);
     } else if (j >= size2)
     {
-      node->setChange(ChangeType::Added);
+      node->setChange(ChangeType::Removed);
     }
 
     Q_ASSERT(node);
