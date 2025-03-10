@@ -3,7 +3,9 @@
 
 #include "snap_v3.0.0_proto/snap_v3.0.0.grpc.pb.h"
 /* ------------------------------------ Qt ---------------------------------- */
+#include <QAction>
 #include <QColor>
+#include <QFont>
 /* ----------------------------------- Metis -------------------------------- */
 #include <metis/logging_manager.h>
 /* -------------------------------------------------------------------------- */
@@ -12,7 +14,9 @@
 
 /* --------------------------------- DiffNode ------------------------------- */
 
-DiffNode::DiffNode(ChangeType change) : m_change(change) {}
+DiffNode::DiffNode(QString name, ChangeType change)
+    : m_change(change), m_name(std::move(name))
+{}
 
 DiffNode::~DiffNode() = default;
 
@@ -49,20 +53,20 @@ void DiffNode::setChange(ChangeType change) { m_change = change; }
 
 ChangeType DiffNode::change() const { return m_change; }
 
+void DiffNode::setName(QString name) { m_name = std::move(name); }
+
+QString DiffNode::name() const { return m_name; }
+
 /* --------------------------------- ObjectNode ----------------------------- */
 
-ObjectNode::ObjectNode(QString name) : DiffNode(), m_name(std::move(name)) {}
-
-QString ObjectNode::name() const { return m_name; }
+ObjectNode::ObjectNode(QString name) : DiffNode(std::move(name)) {}
 
 /* -------------------------------- PropertyNode ---------------------------- */
 
 PropertyNode::PropertyNode(QString name, QVariant oldValue, QVariant newValue)
-    : DiffNode(), m_name(std::move(name)), m_oldValue(std::move(oldValue)),
+    : DiffNode(std::move(name)), m_oldValue(std::move(oldValue)),
       m_newValue(std::move(newValue))
 {}
-
-QString PropertyNode::name() const { return m_name; }
 
 QVariant PropertyNode::oldValue() const { return m_oldValue; }
 
@@ -85,8 +89,8 @@ std::unique_ptr<DiffNode> DiffBuilder::build(
 
   auto object_node =
     std::make_unique<ObjectNode>(QString::fromStdString(descriptor->name()));
-  object_node->setChange(ChangeType::Unchanged);
 
+  auto any_field_diff = false;
   for (auto i = 0; i < descriptor->field_count(); ++i)
   {
     const auto field = descriptor->field(i);
@@ -98,9 +102,12 @@ std::unique_ptr<DiffNode> DiffBuilder::build(
       new_diff_node = createFromField(msg1, msg2, field);
 
     Q_ASSERT(new_diff_node);
+    any_field_diff |= new_diff_node->change() != ChangeType::Unchanged;
     object_node->addChild(std::move(new_diff_node));
   }
 
+  object_node->setChange(
+    any_field_diff ? ChangeType::Modified : ChangeType::Unchanged);
   return object_node;
 }
 
@@ -189,9 +196,10 @@ std::unique_ptr<DiffNode> DiffBuilder::createFromRepeatedField(
       field->name() + "[" + std::to_string(0) + "-" + std::to_string(max_size) +
       "]"));
 
+  auto any_field_diff = false;
   for (auto j = 0; j < max_size; ++j)
   {
-    auto node = std::make_unique<DiffNode>();
+    auto node = std::unique_ptr<DiffNode>();
     if (field->cpp_type() == google::protobuf::FieldDescriptor::CPPTYPE_MESSAGE)
     {
       const auto empty_msg =
@@ -207,6 +215,9 @@ std::unique_ptr<DiffNode> DiffBuilder::createFromRepeatedField(
                         : empty_msg;
 
       node = build(*message1, *message2);
+      node->setName(
+        QString::fromStdString(field->name() + "[" + std::to_string(j) + "]"));
+
     } else
     {
       QVariant value1, value2;
@@ -224,17 +235,21 @@ std::unique_ptr<DiffNode> DiffBuilder::createFromRepeatedField(
       }
     }
 
-    if (j < size1)
+    if (j >= size1)
     {
       node->setChange(ChangeType::Removed);
-    } else if (j < size2)
+    } else if (j >= size2)
     {
       node->setChange(ChangeType::Added);
     }
 
+    Q_ASSERT(node);
+    any_field_diff |= node->change() != ChangeType::Unchanged;
     repeated_field_node->addChild(std::move(node));
   }
 
+  repeated_field_node->setChange(
+    any_field_diff ? ChangeType::Modified : ChangeType::Unchanged);
   return repeated_field_node;
 }
 
@@ -325,7 +340,27 @@ int DiffModel::rowCount(const QModelIndex &parent) const
   return parent_node ? parent_node->childCount() : 0;
 }
 
-int DiffModel::columnCount(const QModelIndex &) const { return 3; }
+int DiffModel::columnCount(const QModelIndex &) const { return Column::Count; }
+
+QVariant
+DiffModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+  if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
+  {
+    switch (section)
+    {
+      case Column::Name:
+        return tr("Name");
+      case Column::OldValue:
+        return tr("Old Value");
+      case Column::NewValue:
+        return tr("New Value");
+      default:
+        return QVariant();
+    }
+  }
+  return QVariant();
+}
 
 QVariant DiffModel::data(const QModelIndex &index, int role) const
 {
@@ -338,23 +373,36 @@ QVariant DiffModel::data(const QModelIndex &index, int role) const
   {
     if (auto object_node = dynamic_cast<const ObjectNode *>(node))
     {
-      if (index.column() == 0) return object_node->name();
+      if (index.column() == Column::Name) return object_node->name();
     } else if (auto property_node = dynamic_cast<const PropertyNode *>(node))
     {
-      if (index.column() == 0) return property_node->name();
-      if (index.column() == 1) return property_node->oldValue();
-      if (index.column() == 2) return property_node->newValue();
+      if (index.column() == Column::Name) return property_node->name();
+      if (index.column() == Column::OldValue) return property_node->oldValue();
+      if (index.column() == Column::NewValue) return property_node->newValue();
     }
-  } else if (role == Qt::BackgroundRole)
+  } else if (role == Qt::FontRole)
+  {
+    if (node->change() != ChangeType::Unchanged)
+    {
+      QFont font;
+      font.setBold(true);
+      return font;
+    } else if (node->change() == ChangeType::Removed)
+    {
+      QFont font;
+      font.setStrikeOut(true);
+      return font;
+    }
+  } else if (role == Qt::DecorationRole && index.column() == 0)
   {
     switch (node->change())
     {
       case ChangeType::Added:
-        return QColor(Qt::green);
+        return QIcon(":/diff_v3.0.0/icons/green.png");
       case ChangeType::Removed:
-        return QColor(Qt::red);
+        return QIcon(":/diff_v3.0.0/icons/red.png");
       case ChangeType::Modified:
-        return QColor(Qt::yellow);
+        return QIcon(":/diff_v3.0.0/icons/blue.png");
       default:
         return QVariant();
     }
@@ -375,7 +423,7 @@ QModelIndex DiffModel::parent(const QModelIndex &index) const
 
   if (parent_node == m_root.get()) return QModelIndex();
 
-  return createIndex(parent_node->row(), 0, parent_node);
+  return createIndex(parent_node->row(), Column::Name, parent_node);
 }
 
 QModelIndex

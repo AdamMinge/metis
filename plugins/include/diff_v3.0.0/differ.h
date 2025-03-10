@@ -24,7 +24,7 @@ enum class ChangeType
 class DiffNode
 {
 public:
-  explicit DiffNode(ChangeType change = ChangeType::Unchanged);
+  explicit DiffNode(QString name, ChangeType change = ChangeType::Unchanged);
   virtual ~DiffNode();
 
   DiffNode(const DiffNode &) = delete;
@@ -43,8 +43,12 @@ public:
   void setChange(ChangeType change);
   ChangeType change() const;
 
+  void setName(QString name);
+  QString name() const;
+
 protected:
   ChangeType m_change;
+  QString m_name;
   DiffNode *m_parent;
   std::vector<std::unique_ptr<DiffNode>> m_children;
 };
@@ -55,11 +59,6 @@ class ObjectNode : public DiffNode
 {
 public:
   explicit ObjectNode(QString name);
-
-  QString name() const;
-
-private:
-  QString m_name;
 };
 
 /* -------------------------------- PropertyNode ---------------------------- */
@@ -69,12 +68,10 @@ class PropertyNode : public DiffNode
 public:
   explicit PropertyNode(QString name, QVariant oldValue, QVariant newValue);
 
-  QString name() const;
   QVariant oldValue() const;
   QVariant newValue() const;
 
 private:
-  QString m_name;
   QVariant m_oldValue;
   QVariant m_newValue;
 };
@@ -117,6 +114,14 @@ class DiffModel : public QAbstractItemModel
 {
   Q_OBJECT
 
+  enum Column
+  {
+    Name,
+    OldValue,
+    NewValue,
+    Count
+  };
+
 public:
   [[nodiscard]] static DiffModel *create(
     const google::protobuf::Message &src, const google::protobuf::Message &dest,
@@ -128,6 +133,7 @@ public:
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
   int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
+  QVariant headerData(int section, Qt::Orientation orientation, int role) const;
   QVariant data(const QModelIndex &index, int role) const override;
 
   QModelIndex parent(const QModelIndex &index) const override;

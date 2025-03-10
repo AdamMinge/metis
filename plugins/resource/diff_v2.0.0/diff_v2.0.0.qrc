@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/diff_v2.0.0">
+        <file>icons/blue.png</file>
+        <file>icons/green.png</file>
+        <file>icons/red.png</file>
+    </qresource>
+</RCC>

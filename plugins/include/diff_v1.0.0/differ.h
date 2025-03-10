@@ -114,6 +114,14 @@ class DiffModel : public QAbstractItemModel
 {
   Q_OBJECT
 
+  enum Column
+  {
+    Name,
+    OldValue,
+    NewValue,
+    Count
+  };
+
 public:
   [[nodiscard]] static DiffModel *create(
     const google::protobuf::Message &src, const google::protobuf::Message &dest,
@@ -125,6 +133,7 @@ public:
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
   int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
+  QVariant headerData(int section, Qt::Orientation orientation, int role) const;
   QVariant data(const QModelIndex &index, int role) const override;
 
   QModelIndex parent(const QModelIndex &index) const override;

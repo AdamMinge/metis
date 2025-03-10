@@ -63,7 +63,11 @@
     </layout>
    </item>
    <item>
-    <widget class="QTreeView" name="diff_view_tree"/>
+    <widget class="QTreeView" name="diff_view_tree">
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
    <item>
     <widget class="ConsoleWidget" name="widget" native="true"/>

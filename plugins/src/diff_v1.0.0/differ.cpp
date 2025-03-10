@@ -3,7 +3,9 @@
 
 #include "snap_v1.0.0_proto/snap_v1.0.0.grpc.pb.h"
 /* ------------------------------------ Qt ---------------------------------- */
+#include <QAction>
 #include <QColor>
+#include <QFont>
 /* ----------------------------------- Metis -------------------------------- */
 #include <metis/logging_manager.h>
 /* -------------------------------------------------------------------------- */
@@ -338,7 +340,27 @@ int DiffModel::rowCount(const QModelIndex &parent) const
   return parent_node ? parent_node->childCount() : 0;
 }
 
-int DiffModel::columnCount(const QModelIndex &) const { return 3; }
+int DiffModel::columnCount(const QModelIndex &) const { return Column::Count; }
+
+QVariant
+DiffModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+  if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
+  {
+    switch (section)
+    {
+      case Column::Name:
+        return tr("Name");
+      case Column::OldValue:
+        return tr("Old Value");
+      case Column::NewValue:
+        return tr("New Value");
+      default:
+        return QVariant();
+    }
+  }
+  return QVariant();
+}
 
 QVariant DiffModel::data(const QModelIndex &index, int role) const
 {
@@ -351,23 +373,36 @@ QVariant DiffModel::data(const QModelIndex &index, int role) const
   {
     if (auto object_node = dynamic_cast<const ObjectNode *>(node))
     {
-      if (index.column() == 0) return object_node->name();
+      if (index.column() == Column::Name) return object_node->name();
     } else if (auto property_node = dynamic_cast<const PropertyNode *>(node))
     {
-      if (index.column() == 0) return property_node->name();
-      if (index.column() == 1) return property_node->oldValue();
-      if (index.column() == 2) return property_node->newValue();
+      if (index.column() == Column::Name) return property_node->name();
+      if (index.column() == Column::OldValue) return property_node->oldValue();
+      if (index.column() == Column::NewValue) return property_node->newValue();
     }
-  } else if (role == Qt::BackgroundRole)
+  } else if (role == Qt::FontRole)
+  {
+    if (node->change() != ChangeType::Unchanged)
+    {
+      QFont font;
+      font.setBold(true);
+      return font;
+    } else if (node->change() == ChangeType::Removed)
+    {
+      QFont font;
+      font.setStrikeOut(true);
+      return font;
+    }
+  } else if (role == Qt::DecorationRole && index.column() == 0)
   {
     switch (node->change())
     {
       case ChangeType::Added:
-        return QColor(Qt::green);
+        return QIcon(":/diff_v1.0.0/icons/green.png");
       case ChangeType::Removed:
-        return QColor(Qt::red);
+        return QIcon(":/diff_v1.0.0/icons/red.png");
       case ChangeType::Modified:
-        return QColor(Qt::yellow);
+        return QIcon(":/diff_v1.0.0/icons/blue.png");
       default:
         return QVariant();
     }
@@ -388,7 +423,7 @@ QModelIndex DiffModel::parent(const QModelIndex &index) const
 
   if (parent_node == m_root.get()) return QModelIndex();
 
-  return createIndex(parent_node->row(), 0, parent_node);
+  return createIndex(parent_node->row(), Column::Name, parent_node);
 }
 
 QModelIndex

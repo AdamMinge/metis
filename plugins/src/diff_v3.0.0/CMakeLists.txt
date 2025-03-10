@@ -7,6 +7,7 @@ cmake_minimum_required(VERSION 3.11)
 # ----------------------------------------------------------------------- #
 set(source_root ${METIS_SOURCE_DIR}/plugins/src/diff_v3.0.0)
 set(include_root ${METIS_SOURCE_DIR}/plugins/include/diff_v3.0.0)
+set(resource_root ${METIS_SOURCE_DIR}/plugins/resource/diff_v3.0.0)
 set(proto_root ${METIS_SOURCE_DIR}/protos)
 
 set(sources
@@ -16,6 +17,8 @@ set(sources
 set(includes
     ${include_root}/plugin.h
     ${include_root}/differ.h)
+
+set(resources ${resource_root}/diff_v3.0.0.qrc)
 
 set(protos 
     ${proto_root}/snap_v3.0.0.proto)
@@ -37,6 +40,7 @@ metis_add_plugins(
   SOURCES
   ${sources}
   ${includes}
+  ${resources}
   PROTOS
   ${protos}
   DEPENDS
