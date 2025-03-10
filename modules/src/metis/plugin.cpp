@@ -112,11 +112,7 @@ namespace metis
     if (isEnabled()) return true;
 
     m_instance = m_loader->instance();
-
-    auto error = m_loader->errorString();
-    qDebug() << "error = " << error << " : " << m_loader->fileName();
     if (!m_instance) return false;
-    qDebug() << "loaded";
 
     if (auto plugin_interface = qobject_cast<PluginInterface *>(m_instance);
         plugin_interface)

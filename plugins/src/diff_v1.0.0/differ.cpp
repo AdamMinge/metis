@@ -12,7 +12,9 @@
 
 /* --------------------------------- DiffNode ------------------------------- */
 
-DiffNode::DiffNode(ChangeType change) : m_change(change) {}
+DiffNode::DiffNode(QString name, ChangeType change)
+    : m_change(change), m_name(std::move(name))
+{}
 
 DiffNode::~DiffNode() = default;
 
@@ -49,20 +51,20 @@ void DiffNode::setChange(ChangeType change) { m_change = change; }
 
 ChangeType DiffNode::change() const { return m_change; }
 
+void DiffNode::setName(QString name) { m_name = std::move(name); }
+
+QString DiffNode::name() const { return m_name; }
+
 /* --------------------------------- ObjectNode ----------------------------- */
 
-ObjectNode::ObjectNode(QString name) : DiffNode(), m_name(std::move(name)) {}
-
-QString ObjectNode::name() const { return m_name; }
+ObjectNode::ObjectNode(QString name) : DiffNode(std::move(name)) {}
 
 /* -------------------------------- PropertyNode ---------------------------- */
 
 PropertyNode::PropertyNode(QString name, QVariant oldValue, QVariant newValue)
-    : DiffNode(), m_name(std::move(name)), m_oldValue(std::move(oldValue)),
+    : DiffNode(std::move(name)), m_oldValue(std::move(oldValue)),
       m_newValue(std::move(newValue))
 {}
-
-QString PropertyNode::name() const { return m_name; }
 
 QVariant PropertyNode::oldValue() const { return m_oldValue; }
 
@@ -85,8 +87,8 @@ std::unique_ptr<DiffNode> DiffBuilder::build(
 
   auto object_node =
     std::make_unique<ObjectNode>(QString::fromStdString(descriptor->name()));
-  object_node->setChange(ChangeType::Unchanged);
 
+  auto any_field_diff = false;
   for (auto i = 0; i < descriptor->field_count(); ++i)
   {
     const auto field = descriptor->field(i);
@@ -98,9 +100,12 @@ std::unique_ptr<DiffNode> DiffBuilder::build(
       new_diff_node = createFromField(msg1, msg2, field);
 
     Q_ASSERT(new_diff_node);
+    any_field_diff |= new_diff_node->change() != ChangeType::Unchanged;
     object_node->addChild(std::move(new_diff_node));
   }
 
+  object_node->setChange(
+    any_field_diff ? ChangeType::Modified : ChangeType::Unchanged);
   return object_node;
 }
 
@@ -189,9 +194,10 @@ std::unique_ptr<DiffNode> DiffBuilder::createFromRepeatedField(
       field->name() + "[" + std::to_string(0) + "-" + std::to_string(max_size) +
       "]"));
 
+  auto any_field_diff = false;
   for (auto j = 0; j < max_size; ++j)
   {
-    auto node = std::make_unique<DiffNode>();
+    auto node = std::unique_ptr<DiffNode>();
     if (field->cpp_type() == google::protobuf::FieldDescriptor::CPPTYPE_MESSAGE)
     {
       const auto empty_msg =
@@ -207,6 +213,9 @@ std::unique_ptr<DiffNode> DiffBuilder::createFromRepeatedField(
                         : empty_msg;
 
       node = build(*message1, *message2);
+      node->setName(
+        QString::fromStdString(field->name() + "[" + std::to_string(j) + "]"));
+
     } else
     {
       QVariant value1, value2;
@@ -224,17 +233,21 @@ std::unique_ptr<DiffNode> DiffBuilder::createFromRepeatedField(
       }
     }
 
-    if (j < size1)
+    if (j >= size1)
     {
       node->setChange(ChangeType::Removed);
-    } else if (j < size2)
+    } else if (j >= size2)
     {
       node->setChange(ChangeType::Added);
     }
 
+    Q_ASSERT(node);
+    any_field_diff |= node->change() != ChangeType::Unchanged;
     repeated_field_node->addChild(std::move(node));
   }
 
+  repeated_field_node->setChange(
+    any_field_diff ? ChangeType::Modified : ChangeType::Unchanged);
   return repeated_field_node;
 }
 
